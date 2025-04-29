@@ -100,7 +100,7 @@ class TradingEnv(gym.Env):
                     profit = self.stocks_held * (current_price - self.entry_price)
                 self.current_balance += profit
 
-                reward = 1
+                reward = 2.5
 
                 self.position = 0
                 self.entry_price = 0
