@@ -13,12 +13,12 @@ class QNetwork(nn.Module):
         super(QNetwork, self).__init__()
         self.fc1 = nn.Linear(in_features = state_size,
                              out_features = hidden_size)
-        self.bn1 = nn.BatchNorm1d(hidden_size)
+        self.bn1 = nn.LayerNorm(hidden_size)
         self.fc2 = nn.Linear(in_features = hidden_size,
                              out_features = 128)
         self.fc3 = nn.Linear(in_features = 128,
                              out_features = 256)
-        self.bn2 = nn.BatchNorm1d(num_features = 256)
+        self.bn2 = nn.LayerNorm(256)
         self.fc4 = nn.Linear(in_features = 256,
                              out_features = hidden_size)
         self.fc5 = nn.Linear(in_features = hidden_size,
