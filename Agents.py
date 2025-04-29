@@ -6,7 +6,6 @@ import torch.nn as nn
 import torch.optim as optim
 import numpy as np
 from collections import deque
-import matplotlib.pyplot as plt
 
 # Q-Network
 class QNetwork(nn.Module):
@@ -28,7 +27,7 @@ class DQNAgent:
     def __init__(self, state_size, action_size):
         self.state_size = state_size
         self.action_size = action_size
-        self.device = torch.cuda if torch.cuda.is_available() else 'cpu'
+        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
         # Q-Network and Target Network
         self.q_network = QNetwork(state_size, action_size).to(self.device)
