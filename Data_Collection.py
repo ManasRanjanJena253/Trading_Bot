@@ -72,7 +72,6 @@ def stream_stock_data(symbol : str = "INFY", interval : float = 60):
 # Collecting data of reliance using yfinance for training the model
 if __name__ == '__main__':
     import yfinance as yf
-    import pandas as pd
 
     # Fetching 5-min candle data for reliance.Ns
     reliance_5min = yf.download(

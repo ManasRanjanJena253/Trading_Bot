@@ -54,6 +54,8 @@ for episode in tqdm(range(num_episodes)):
     if (episode + 1) % 1000 == 0:
         torch.save(agent.q_network.state_dict(), f"Models/dqn_trading_model_episode_{episode + 1}.pth")
 
+    env.render()
+
     fig, axs = plt.subplots(1, 2, figsize=(12, 5))
 
     # Plotting Reward History

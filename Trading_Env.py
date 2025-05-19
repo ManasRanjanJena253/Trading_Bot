@@ -10,6 +10,10 @@ import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
 import pandas as pd
+import csv
+
+from urllib3.filepost import writer
+
 
 class TradingEnv(gym.Env):
     def __init__(self, data, initial_balance : int = 5000, stop_loss_pct : float = 0.01, take_profit_pct : float = 0.025):
@@ -85,7 +89,7 @@ class TradingEnv(gym.Env):
                     loss = self.stocks_held * (self.entry_price - current_price)
                 elif self.position == 1:
                     loss = self.stocks_held * (current_price - self.entry_price)
-                self.current_balance += loss
+                self.current_balance -= loss
 
                 reward = -1
 
@@ -113,7 +117,8 @@ class TradingEnv(gym.Env):
         return self.get_obs(), reward, done, False, {}
 
     def render(self):
-        print(f"Step : {self.current_step}, Balance : {self.current_balance}, Position : {self.position}")
+        f = open('Data/Training_Log.txt', mode = 'a+')
+        f.write(f"Step : {self.current_step}, Balance : {self.current_balance}, Position : {self.position}\n")
 
 
 
