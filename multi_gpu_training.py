@@ -5,6 +5,7 @@ import torch.nn as nn
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import random
 from Trading_Env import TradingEnv
 from Agents import DQNAgent, QNetwork
 from tqdm.auto import tqdm
@@ -33,31 +34,29 @@ action_dim = env.action_space.n
 
 agent = DQNAgent(state_dim, action_dim)
 
-# Move agent to device and setup multi-GPU if available
-agent.q_network = agent.q_network.to(device)
-agent.target_network = agent.target_network.to(device)
-
+# Setup multi-GPU if available
 if use_multi_gpu:
     print(f"Using DataParallel with {torch.cuda.device_count()} GPUs")
     agent.q_network = nn.DataParallel(agent.q_network)
     agent.target_network = nn.DataParallel(agent.target_network)
+
+    # Update the target network to match the main network
+    if use_multi_gpu:
+        agent.target_network.load_state_dict(agent.q_network.state_dict())
 
     # Modify the agent's act method to handle DataParallel
     original_act = agent.act
 
 
     def multi_gpu_act(state):
-        if isinstance(state, np.ndarray):
-            state = torch.FloatTensor(state).unsqueeze(0).to(device)
-        elif not state.is_cuda:
-            state = state.to(device)
-
-        if np.random.random() <= agent.epsilon:
-            return np.random.choice(agent.action_dim)
-
-        with torch.no_grad():
-            q_values = agent.q_network(state)
-            return q_values.cpu().data.numpy().argmax()
+        # Epsilon greedy selection
+        if random.random() < agent.epsilon:
+            return random.choice(range(agent.action_size))
+        else:
+            state = torch.FloatTensor(state).unsqueeze(0).to(agent.device)
+            with torch.inference_mode():
+                q_values = agent.q_network(state)
+            return q_values.argmax().item()
 
 
     agent.act = multi_gpu_act
@@ -70,21 +69,28 @@ if use_multi_gpu:
         if len(agent.memory) < agent.batch_size:
             return
 
-        batch = agent.memory.sample(agent.batch_size)
-        states = torch.FloatTensor([e.state for e in batch]).to(device)
-        actions = torch.LongTensor([e.action for e in batch]).to(device)
-        rewards = torch.FloatTensor([e.reward for e in batch]).to(device)
-        next_states = torch.FloatTensor([e.next_state for e in batch]).to(device)
-        dones = torch.BoolTensor([e.done for e in batch]).to(device)
+        batch = random.sample(agent.memory, agent.batch_size)
+        states, actions, rewards, next_states, dones = zip(*batch)
 
-        current_q_values = agent.q_network(states).gather(1, actions.unsqueeze(1))
+        # Convert to numpy arrays first, then to tensors to be more efficient.
+        states = torch.FloatTensor(np.array(states)).to(agent.device)
+        actions = torch.LongTensor(np.array(actions)).unsqueeze(1).to(agent.device)
+        rewards = torch.FloatTensor(np.array(rewards)).unsqueeze(1).to(agent.device)
+        next_states = torch.FloatTensor(np.array(next_states)).to(agent.device)
+        dones = torch.FloatTensor(np.array(dones)).unsqueeze(1).to(agent.device)
 
+        # Current Q-Values
+        q_values = agent.q_network(states).gather(1, actions)
+
+        # Target Q-Values
         with torch.no_grad():
-            next_q_values = agent.target_network(next_states).max(1)[0]
-            target_q_values = rewards + (agent.gamma * next_q_values * ~dones)
+            next_q_values = agent.target_network(next_states).max(1)[0].unsqueeze(1)
+            target_q_values = rewards + (agent.gamma * next_q_values * (1 - dones))
 
-        loss = agent.criterion(current_q_values.squeeze(), target_q_values)
+        # Loss
+        loss = nn.MSELoss()(q_values, target_q_values)
 
+        # Optimize
         agent.optimizer.zero_grad()
         loss.backward()
 
@@ -94,13 +100,9 @@ if use_multi_gpu:
         agent.optimizer.step()
 
         # Update target network
-        if agent.learn_step_counter % agent.target_update == 0:
-            if use_multi_gpu:
-                agent.target_network.load_state_dict(agent.q_network.state_dict())
-            else:
-                agent.target_network.load_state_dict(agent.q_network.state_dict())
-
-        agent.learn_step_counter += 1
+        agent.step_count += 1
+        if agent.step_count % agent.update_every == 0:
+            agent.target_network.load_state_dict(agent.q_network.state_dict())
 
 
     agent.learn = multi_gpu_learn
@@ -128,7 +130,7 @@ for episode in tqdm(range(num_episodes)):
 
         agent.memorize(state, action, reward, next_state, done)
 
-        # Use mixed precision training if available
+        # Use mixed precision training if available and beneficial
         if scaler is not None and use_multi_gpu:
             with torch.cuda.amp.autocast():
                 agent.learn()
