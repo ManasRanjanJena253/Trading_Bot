@@ -38,8 +38,8 @@ class TradingEnv(gym.Env):
 
         # Observation space = : The data plus the current balance
         self.observation_space = spaces.Box(
-            low = np.inf,
-            high = np.inf,
+            low = -1000,
+            high = 1000,
             shape = (len(self.data.columns) + 1,),
             dtype = np.float32
         )

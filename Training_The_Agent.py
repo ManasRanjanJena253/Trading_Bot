@@ -8,6 +8,9 @@ from Trading_Env import TradingEnv
 from Agents import DQNAgent, QNetwork
 from tqdm.auto import tqdm
 
+print(torch.cuda.is_available())
+torch.backends.cudnn.benchmark = True
+
 # Creating the environment
 data = pd.read_csv('Data/processed_reliance_data.csv')
 env = TradingEnv(data = data)
@@ -19,9 +22,10 @@ action_dim = env.action_space.n
 agent = DQNAgent(state_dim, action_dim)
 
 # Training
-num_episodes = 10000
+num_episodes = 3000
 reward_history = []
 epsilon_history = []
+min_reward = float("-inf")
 
 done = False
 
@@ -41,7 +45,7 @@ for episode in tqdm(range(num_episodes)):
 
         state = next_state
         episode_reward += reward
-        # env.render()  , Can be uncommented to view the info about the trades
+        # env.render()  Can be uncommented to view the info about the trades
 
     # Epsilon decay
     if agent.epsilon > agent.epsilon_min:
@@ -51,12 +55,11 @@ for episode in tqdm(range(num_episodes)):
     epsilon_history.append(agent.epsilon)
 
     # Saving the model every 50 episodes
-    if (episode + 1) % 1000 == 0:
-        torch.save(agent.q_network.state_dict(), f"Models/dqn_trading_model_episode_{episode + 1}.pth")
+    if episode_reward > min_reward:
+        torch.save(agent.q_network.state_dict(), f"Models/dqn_trading_model_reward_({episode_reward}).pth")
+        min_reward = episode_reward
 
-    env.render()
-
-    fig, axs = plt.subplots(1, 2, figsize=(12, 5))
+    fig, axs = plt.subplots(1, 2, figsize = (12, 5))
 
     # Plotting Reward History
     axs[0].plot(reward_history)
@@ -75,6 +78,7 @@ for episode in tqdm(range(num_episodes)):
 
     # Save the combined plot
     plt.savefig("Plots/Training_Metrics.png")
+    plt.close()
 
 
 

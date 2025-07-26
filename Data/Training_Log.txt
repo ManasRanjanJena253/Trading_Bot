@@ -1,4 +1,7 @@
-Step : 4357, Balance : 20475.65234375, Position : 1
-Step : 4357, Balance : 85915.47033691406, Position : 1
-Step : 4357, Balance : 348795.43408203125, Position : 1
-Step : 4357, Balance : 1541719.1955566406, Position : 1
+Step : 4357, Balance : 21214.555419921875, Position : 1
+Step : 4357, Balance : 83821.09692382812, Position : 1
+Step : 4357, Balance : 338171.00390625, Position : 1
+Step : 4357, Balance : 1399742.31640625, Position : 1
+Step : 4357, Balance : 6414816.347045898, Position : -1
+Step : 4357, Balance : 25841290.04675293, Position : -1
+Step : 4357, Balance : 102346845.6126709, Position : -1
